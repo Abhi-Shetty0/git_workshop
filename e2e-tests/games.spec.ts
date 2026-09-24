@@ -1,6 +1,40 @@
 import { test, expect, type Response } from '@playwright/test';
 
 test.describe('Game Listing and Navigation', () => {
+  test('should filter games by category', async ({ page }) => {
+    await page.goto('/');
+
+    const visibleCards = page.locator('[data-testid="game-card"]:not([hidden])');
+    const initialCount = await visibleCards.count();
+    await page.getByRole('checkbox', { name: 'Filter by Strategy' }).check();
+
+    await expect(visibleCards).toHaveCount(4);
+    await expect(page.getByTestId('filter-results-status')).toHaveText(`Showing 4 of ${initialCount} games.`);
+  });
+
+  test('should combine category and publisher filters', async ({ page }) => {
+    await page.goto('/');
+
+    await page.getByRole('checkbox', { name: 'Filter by Strategy' }).check();
+    await page.getByRole('combobox', { name: 'Publisher' }).selectOption({ label: 'CodeForge Studios' });
+
+    await expect(page.locator('[data-testid="game-card"]:not([hidden])')).toHaveCount(1);
+    await expect(page.getByTestId('filter-results-status')).toHaveText(/Showing 1 of \d+ games\./);
+  });
+
+  test('should clear category and publisher filters', async ({ page }) => {
+    await page.goto('/');
+
+    const visibleCards = page.locator('[data-testid="game-card"]:not([hidden])');
+    const initialCount = await visibleCards.count();
+    await page.getByRole('checkbox', { name: 'Filter by Puzzle' }).check();
+    await page.getByRole('combobox', { name: 'Publisher' }).selectOption({ label: 'CodeForge Studios' });
+    await page.getByTestId('clear-filters').click();
+
+    await expect(visibleCards).toHaveCount(initialCount);
+    await expect(page.getByTestId('filter-results-status')).toHaveText(`Showing ${initialCount} of ${initialCount} games.`);
+  });
+
   test('should display games with titles on index page', async ({ page }) => {
     await test.step('Navigate to homepage', async () => {
       await page.goto('/');
